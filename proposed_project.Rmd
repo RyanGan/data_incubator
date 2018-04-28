@@ -1,0 +1,11 @@
+---
+title: "Predicting Wildfires Based on Temperature and Precipitation"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Introduction
+
+- Climate change due to increasing global temperatures will increase the frequency and intensity of future wildland fires in the Western United States.
+
