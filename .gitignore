@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# ignore r proj
+*.Rproj
+# ignore html files
+*.html
