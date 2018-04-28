@@ -138,3 +138,5 @@ sim_ants_m23_n21_prob <- sim_ants_m23_n21 %>%
 # D > 0.6 | D > 0.2
 format(prop.table(xtabs(~prob_6 + prob_2, sim_ants_m23_n21_prob),2), nsmall = 10)
 ```
+
+I think this answers the simulated ant path question. I could do some more complicated pooled estimates of mean and standard deviation accounting for ant paths, but that seems to complicate matters.
