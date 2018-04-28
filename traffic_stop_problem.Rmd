@@ -1,0 +1,11 @@
+---
+title: "Traffic Stops"
+output: html_notebook
+author: "Ryan Gan"
+date: "2018-04-27"
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+

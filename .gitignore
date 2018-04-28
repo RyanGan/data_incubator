@@ -7,3 +7,5 @@
 *.Rproj
 # ignore html files
 *.html
+# ignore data file
+data/
