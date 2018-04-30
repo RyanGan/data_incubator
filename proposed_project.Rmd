@@ -7,5 +7,153 @@ editor_options:
 
 ## Introduction
 
-- Climate change due to increasing global temperatures will increase the frequency and intensity of future wildland fires in the Western United States.
+This document is part of my Data Incubator application. 
+
+In Colorado, more and more people are moving to the wildland-urban interface. We have seen property values in our scenic mountain towns increasing steadily. Just 30 minutes from Denver, the town of Evergreen offers mountain-living with the convenence of living close to a major city with all the amenities one could want. 
+
+This growth in population and construction is at risk to wildland fires. Climate change has increased the frequency and intensity of wildfires in the Western US over the past decade and this problem is only expected to get worse in the future. In the past decade alone, Colorado has experience at least 3 costly fire events that destroyed property and lives. 
+
+- The High Park Fire in 2012 near Ft. Collins destroyed estimated to cost $33.5 million 
+- The Waldo Canyon fire in 2012 near Colorado Springs estimated to $453.7 million.
+- The Fourmile Canyon fire in 2014 near Boulder that cost $217 million.
+
+In other populated Western States like California and Washington, wildfires pose a similar if not greater risk to property than Colorado. One only needs to look to the recent Northern California fires that affected Sonoma and Napa counties that cost a record $9.4 billion in insured damage.
+
+The ability to quantify neighborhood and community risk to wildfires would be of economic value for real-estate developers and insurance agencies.
+
+I am proposing to build predictive models that will estimate the likelihood of a wildfire for the Western United States using data from NASA and NOAA satellite products. These models will use a relatively untapped data resource of NASA and NOAA remote-sensor satellite products. 
+
+To demonstrate the feasibility of this project, I will use Palmer Drought Index data that uses temperature and precipitation satellite products from National Oceanic and Atmospheric Administration (NOAA) to plot the mean drought index for Colorado from 1980 to 2014. I will also plot the number of wildfires in Colorado from 1980 to 2014 as well.
+
+I will use the following packages to create the plot. The tidyverse package is a general data-wrangling package that also includes ggplot2 graphical package. The ncdf4 package opens connections to .nc gridded array files that are commonly used by NOAA for efficently storing multi-dimensional data. The sf package will be used to open up a shapefile of wildfire locations.
+
+```{r libraries}
+# libraries
+library(tidyverse)
+library(ncdf4)
+library(sf)
+
+# knitr options
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6)
+```
+
+
+## Drought Index
+
+Opening connection to Palmer Drought Index (PDI) file from Colorado.
+
+```{r pdi_nc}
+# open drought index nc conncection
+di_nc <- nc_open("./data/pdi_colorado.nc")
+```
+
+Wrangling PDI from 3-D array to a 2-D matrix.
+
+```{r pdi_mat}
+# extract lat/lon points and expand grid 
+lat <- ncvar_get(di_nc, varid = "lat")
+# lons need to be negative rather than degrees west
+lon <- ncvar_get(di_nc, varid = "lon")
+coords <- as.matrix(expand.grid(lon,lat))
+# extract recent montly air temp where each month is a column
+pdsi <- ncvar_get(di_nc, varid = "pdsi")
+
+# matrix
+pdsi_mat <- apply(pdsi, 3, as.vector)
+# create date column names
+date <- as.character(seq(as.Date("1980-01-01"), as.Date("2014-12-01"),
+                         by = "month"))
+# assign date names to temp matrix
+colnames(pdsi_mat) <- date
+```
+
+Preparing dataframe for plotting.
+
+```{r pdi_dataframe}
+# pdsi matrix
+colnames(coords) <- c("lon", "lat")
+
+group <- 1:9
+# group
+pdsi_df <- data.frame(group, coords, pdsi_mat) 
+glimpse(pdsi_df)
+# date for plotting
+date_col <- as.data.frame(seq(as.Date("1980-01-01"), as.Date("2014-12-01"),
+                        by = "month")) 
+
+# make temp matrix and take mean for state
+co_di <- pdsi_df %>% 
+  select(-lon, -lat) %>% 
+  gather(key = date, value = pdi, -group) %>% 
+  mutate(pdi_invert = -(pdi),
+    Date = as.Date(gsub("X", "", gsub("\\.","-", date)))) %>%
+  group_by(Date) %>% 
+  summarise(mean_pdi_invert = mean(pdi_invert)) %>% 
+  mutate(month = factor(months(Date), 
+   levels = c("January", "February", "March", "April", "May", "June", "July",
+               "August", "September", "October", "November", "December")))
+```
+
+### Plot of Colorado Monthly Mean Drought Index 1980-2014
+
+Plot of inverted drought index (measure that accounts for temperature and precipitation) for Colorado by Month. General trend across the state and for all months indicates the state is getting dryer over time.
+
+```{r drought_plot}
+# drought plot
+ggplot(co_di, aes(x=Date, y=mean_pdi_invert)) +
+  geom_point(color = "#06beb6") +
+  geom_smooth(method = "lm", se = F, color = "#fc466b") +
+  facet_wrap(~month) +
+  ylab("Drought Index (- Wet to + Dry)") +
+  ggtitle("Colorado 1980-2014: Drought Index by Month") +
+  theme_minimal()
+```
+
+## Wildfires
+
+Using US Forest Service historic wildfire shapefile data and subsetting to Colorado from 1980 to 2014.
+
+```{r wildfire_data}
+# import wildfires for US
+wildfire <- st_read(dsn = "./data/wf_usfs_1980_2016/",
+                    layer = "wf_usfs_1980_2016")
+# subset to colorado and limit to time period of drought index
+co_fires <- wildfire %>% 
+  filter(STATE == "Colorado") %>% 
+  filter(STARTDATED <= "2014-12-31") %>% 
+  filter(Duplicate_ == 0) %>% 
+  mutate(Date = lubridate::floor_date(STARTDATED, unit = "months"))
+
+# extract lat lonts
+fire_coords <- data.frame(st_coordinates(co_fires)) %>% 
+  rename("lon"=X, "lat"=Y) 
+
+# join in with co fires
+co_fire_summary <- co_fires %>% 
+  bind_cols(fire_coords) %>% 
+  group_by(Date) %>% 
+  summarise(n_fires = n(), total_acres = sum(TOTALACRES)) %>% 
+  mutate(month = factor(months(Date), 
+    levels = c("January", "February", "March", "April", "May", "June", "July",
+               "August", "September", "October", "November", "December")))
+
+# remove sf geometrey 
+st_geometry(co_fire_summary) <- NULL
+```
+
+### Plot of Colorado Number of Wildfire Numbers 1980-2014
+
+Plotting number of wildfires of any size by month during the study period. The number of wildfires has been increasing over time for the summer months of June, July, and August.
+
+```{r fire_plot}
+# plot
+ggplot(co_fire_summary, aes(x=Date, y = n_fires)) +
+  geom_point(color = "#b21f1f") +
+  geom_smooth(method = "lm", se=F, color = "#243b55") +
+  facet_wrap(~month) +
+  ylab("Number of Wildfires") +
+  ggtitle("Colorado 1980-2014: Number of Wildfires") +
+  theme_minimal()
+```
+
 
