@@ -1,0 +1,94 @@
+---
+title: "Plot 1"
+author: "Ryan Gan"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+# Plot 1 For Data Incubator Challenge
+
+```{r libraries}
+# libraries
+library(tidyverse)
+library(ncdf4)
+library(sf)
+
+# knitr options
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6)
+```
+
+
+## Drought Index
+
+Opening connection to Palmer Drought Index (PDI) file from Colorado.
+
+```{r pdi_nc}
+# open drought index nc conncection
+di_nc <- nc_open("./data/pdi_colorado.nc")
+```
+
+Wrangling PDI from 3-D array to a 2-D matrix.
+
+```{r pdi_mat}
+# extract lat/lon points and expand grid 
+lat <- ncvar_get(di_nc, varid = "lat")
+# lons need to be negative rather than degrees west
+lon <- ncvar_get(di_nc, varid = "lon")
+coords <- as.matrix(expand.grid(lon,lat))
+# extract recent montly air temp where each month is a column
+pdsi <- ncvar_get(di_nc, varid = "pdsi")
+
+# matrix
+pdsi_mat <- apply(pdsi, 3, as.vector)
+# create date column names
+date <- as.character(seq(as.Date("1980-01-01"), as.Date("2014-12-01"),
+                         by = "month"))
+# assign date names to temp matrix
+colnames(pdsi_mat) <- date
+```
+
+Preparing data frame for plotting.
+
+```{r pdi_dataframe}
+# pdsi matrix
+colnames(coords) <- c("lon", "lat")
+
+group <- 1:9
+# group
+pdsi_df <- data.frame(group, coords, pdsi_mat) 
+glimpse(pdsi_df)
+# date for plotting
+date_col <- as.data.frame(seq(as.Date("1980-01-01"), as.Date("2014-12-01"),
+                        by = "month")) 
+
+# make temp matrix and take mean for state
+co_di <- pdsi_df %>% 
+  select(-lon, -lat) %>% 
+  gather(key = date, value = pdi, -group) %>% 
+  mutate(pdi_invert = -(pdi),
+    Date = as.Date(gsub("X", "", gsub("\\.","-", date)))) %>%
+  group_by(Date) %>% 
+  summarise(mean_pdi_invert = mean(pdi_invert)) %>% 
+  mutate(month = factor(months(Date), 
+   levels = c("January", "February", "March", "April", "May", "June", "July",
+               "August", "September", "October", "November", "December")))
+```
+
+### Plot of Colorado Monthly Mean Drought Index 1980-2014
+
+Plot of inverted drought index (measure that accounts for temperature and precipitation) for Colorado by Month. General trend across the state and for all months indicates the state is getting dryer over time.
+
+```{r drought_plot}
+# drought plot
+ggplot(co_di, aes(x=Date, y=mean_pdi_invert)) +
+  geom_point(color = "#06beb6") +
+  geom_smooth(method = "lm", se = F, color = "#fc466b") +
+  facet_wrap(~month) +
+  ylab("Drought Index (- Wet to + Dry)") +
+  ggtitle("Colorado 1980-2014: Drought Index by Month") +
+  theme_minimal()
+```
+
