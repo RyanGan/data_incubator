@@ -20,7 +20,6 @@ library(sf)
 knitr::opts_chunk$set(fig.width = 8, fig.height = 6)
 ```
 
-
 ## Wildfires
 
 Using US Forest Service historic wildfire shape file data and subletting to Colorado from 1980 to 2014.
