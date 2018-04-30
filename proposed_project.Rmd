@@ -1,7 +1,9 @@
 ---
 title: "Predicting Wildfires Based on Temperature and Precipitation"
-output: html_notebook
-editor_options: 
+output:
+  html_document:
+    df_print: paged
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -9,13 +11,13 @@ editor_options:
 
 This document is part of my Data Incubator application. 
 
-In Colorado, more and more people are moving to the wildland-urban interface. We have seen property values in our scenic mountain towns increasing steadily. Just 30 minutes from Denver, the town of Evergreen offers mountain-living with the convenence of living close to a major city with all the amenities one could want. 
+In Colorado, more and more people are moving to the wildland-urban interface. We have seen property values in our scenic mountain towns increasing steadily. Just 30 minutes from Denver, the town of Evergreen offers mountain-living with the convenience of living close to a major city with all the amenities one could want. 
 
 This growth in population and construction is at risk to wildland fires. Climate change has increased the frequency and intensity of wildfires in the Western US over the past decade and this problem is only expected to get worse in the future. In the past decade alone, Colorado has experience at least 3 costly fire events that destroyed property and lives. 
 
 - The High Park Fire in 2012 near Ft. Collins destroyed estimated to cost $33.5 million 
 - The Waldo Canyon fire in 2012 near Colorado Springs estimated to $453.7 million.
-- The Fourmile Canyon fire in 2014 near Boulder that cost $217 million.
+- The Four mile Canyon fire in 2014 near Boulder that cost $217 million.
 
 In other populated Western States like California and Washington, wildfires pose a similar if not greater risk to property than Colorado. One only needs to look to the recent Northern California fires that affected Sonoma and Napa counties that cost a record $9.4 billion in insured damage.
 
@@ -25,7 +27,7 @@ I am proposing to build predictive models that will estimate the likelihood of a
 
 To demonstrate the feasibility of this project, I will use Palmer Drought Index data that uses temperature and precipitation satellite products from National Oceanic and Atmospheric Administration (NOAA) to plot the mean drought index for Colorado from 1980 to 2014. I will also plot the number of wildfires in Colorado from 1980 to 2014 as well.
 
-I will use the following packages to create the plot. The tidyverse package is a general data-wrangling package that also includes ggplot2 graphical package. The ncdf4 package opens connections to .nc gridded array files that are commonly used by NOAA for efficently storing multi-dimensional data. The sf package will be used to open up a shapefile of wildfire locations.
+I will use the following packages to create the plot. The tidyverse package is a general data-wrangling package that also includes ggplot2 graphical package. The ncdf4 package opens connections to .nc gridded array files that are commonly used by NOAA for efficiently storing multi-dimensional data. The sf package will be used to open up a shape file of wildfire locations.
 
 ```{r libraries}
 # libraries
@@ -67,7 +69,7 @@ date <- as.character(seq(as.Date("1980-01-01"), as.Date("2014-12-01"),
 colnames(pdsi_mat) <- date
 ```
 
-Preparing dataframe for plotting.
+Preparing data frame for plotting.
 
 ```{r pdi_dataframe}
 # pdsi matrix
@@ -111,7 +113,7 @@ ggplot(co_di, aes(x=Date, y=mean_pdi_invert)) +
 
 ## Wildfires
 
-Using US Forest Service historic wildfire shapefile data and subsetting to Colorado from 1980 to 2014.
+Using US Forest Service historic wildfire shape file data and subletting to Colorado from 1980 to 2014.
 
 ```{r wildfire_data}
 # import wildfires for US
@@ -156,4 +158,7 @@ ggplot(co_fire_summary, aes(x=Date, y = n_fires)) +
   theme_minimal()
 ```
 
+## Conclusion
+
+The increasing drought index during the summer months and the increasing number of wildfires leads me to believe that building a predictive model of likelihood of a wildfire occurring based on factors like drought, temperature, precipitation, and vegetative land cover would be a successful capstone project.
 
