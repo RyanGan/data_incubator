@@ -128,6 +128,9 @@ co_fires <- wildfire %>%
   filter(Duplicate_ == 0) %>% 
   mutate(Date = lubridate::floor_date(STARTDATED, unit = "months"))
 
+# extract fire coords
+fire_coords <- data.frame(st_coordinates(co_fires))  
+
 # join in with co fires
 co_fire_summary <- co_fires %>% 
   bind_cols(fire_coords) %>% 
